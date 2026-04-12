@@ -7,7 +7,7 @@ import type { StationWithAQI } from "@/types/database";
 interface StationLayerProps {
   stations: StationWithAQI[];
   visible: boolean;
-  onStationClick: (stationId: string) => void;
+  onStationClick: (stationId: number) => void;  // fix 1: string → number
   onHover: (stationName: string | null, aqi: number | null) => void;
 }
 
@@ -32,7 +32,7 @@ const StationLayer = memo(function StationLayer({
 
             return (
               <motion.g
-                key={station.station_id}
+                key={String(station.station_id)}  // fix 2: coerce to string for React key
                 initial={{ opacity: 0, scale: 0 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0 }}

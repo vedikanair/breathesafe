@@ -14,11 +14,14 @@ interface StateLayerProps {
 
 // Normalize state names between GeoJSON and our Database/Sample Data
 const STATE_NAME_MAP: Record<string, string> = {
-  "NCT of Delhi": "Delhi",
-  "Arunanchal Pradesh": "Arunachal Pradesh",
-  "Andaman & Nicobar Island": "Andaman and Nicobar Islands",
-  "Dadara & Nagar Havelli": "Dadra and Nagar Haveli and Daman and Diu",
-  "Daman & Diu": "Dadra and Nagar Haveli and Daman and Diu",
+  "NCT of Delhi": "Delhi",                                          // already there
+  "Arunanchal Pradesh": "Arunachal Pradesh",                        // already there
+  "Andaman & Nicobar Island": "Andaman and Nicobar Islands",        // already there
+  "Dadara & Nagar Havelli": "Dadra and Nagar Haveli and Daman and Diu", // already there
+  "Daman & Diu": "Dadra and Nagar Haveli and Daman and Diu",       // already there
+  "Telangana": "Telangana",                                         // should match
+  "West Bengal": "West Bengal",                                     // should match
+  "Uttar Pradesh": "Uttar Pradesh",                                 // should match
 };
 
 const StateLayer = memo(function StateLayer({
@@ -30,11 +33,16 @@ const StateLayer = memo(function StateLayer({
 }: StateLayerProps) {
   const pathGenerator = useMemo(() => getPathGenerator(), []);
 
-  const stateDataMap = useMemo(() => {
-    const map = new Map<string, StateAQI>();
-    stateAggregates.forEach((s) => map.set(s.state_name, s));
-    return map;
-  }, [stateAggregates]);
+const stateDataMap = useMemo(() => {
+  const map = new Map<string, StateAQI>();
+  stateAggregates.forEach((s) => map.set(s.state_name, s));
+
+  // Temporary debug
+  console.log("DB state names:", Array.from(map.keys()));
+  console.log("GeoJSON state names:", geoData.features.map((f: any) => f.properties.st_nm));
+
+  return map;
+}, [stateAggregates, geoData]);
 
   return (
     <g className="state-layer">

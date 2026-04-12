@@ -12,7 +12,7 @@ import type { StateAQI, CityWithAQI, StationWithAQI } from "@/types/database";
 interface InteractiveMapProps {
   stateAggregates: StateAQI[];
   cities: CityWithAQI[];
-  onStationSelect?: (stationId: string) => void;
+  onStationSelect?: (stationId: number) => void;
 }
 
 export default function InteractiveMap({

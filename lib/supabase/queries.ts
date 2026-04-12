@@ -33,6 +33,9 @@ export async function fetchCitiesWithLatestAQI(): Promise<CityWithAQI[]> {
       .select("*")
       .order("avg_aqi", { ascending: false });
 
+    console.log("fetchCitiesWithLatestAQI — raw data sample:", JSON.stringify(data?.slice(0, 2), null, 2));
+    console.log("fetchCitiesWithLatestAQI — error:", error);
+
     if (error || !data) return getSampleCitiesWithAQI();
 
     return (data as Record<string, unknown>[]).map((row) => ({
@@ -46,7 +49,8 @@ export async function fetchCitiesWithLatestAQI(): Promise<CityWithAQI[]> {
       max_aqi: row.max_aqi as number,
       dominant_category: row.dominant_category as string,
     }));
-  } catch {
+  } catch (e) {
+    console.log("fetchCitiesWithLatestAQI — caught error:", e);
     return getSampleCitiesWithAQI();
   }
 }
@@ -218,10 +222,18 @@ export async function fetchTopStations(limit: number = 5): Promise<StationWithAQ
 export async function fetchIndiaMapData(): Promise<StateAQI[]> {
   const cities = await fetchCitiesWithLatestAQI();
 
+  console.log("fetchIndiaMapData — cities sample:", cities.slice(0, 3).map(c => ({
+    city_name: c.city_name,
+    state: c.state,
+    avg_aqi: c.avg_aqi,
+    stations: c.stations.length,
+  })));
+
   const stateMap = new Map<string, { aqiSum: number; stationCount: number; maxAqi: number }>();
 
   cities.forEach(city => {
     const state = city.state;
+    if (!state) return; // skip if state is undefined
     if (!stateMap.has(state)) {
       stateMap.set(state, { aqiSum: 0, stationCount: 0, maxAqi: 0 });
     }
@@ -234,7 +246,16 @@ export async function fetchIndiaMapData(): Promise<StateAQI[]> {
         if (s.latest_aqi > current.maxAqi) current.maxAqi = s.latest_aqi;
       }
     });
+
+    // If city has no stations, fall back to city avg_aqi directly
+    if (city.stations.length === 0 && city.avg_aqi > 0) {
+      current.aqiSum += city.avg_aqi;
+      current.stationCount += 1;
+      if (city.avg_aqi > current.maxAqi) current.maxAqi = city.avg_aqi;
+    }
   });
+
+  console.log("fetchIndiaMapData — stateMap keys:", Array.from(stateMap.keys()));
 
   return Array.from(stateMap.entries()).map(([stateName, data]) => {
     const avg = data.stationCount > 0 ? Math.round(data.aqiSum / data.stationCount) : 0;
@@ -254,7 +275,6 @@ export async function fetchIndiaMapData(): Promise<StateAQI[]> {
     };
   });
 }
-
 // ─── Pollutant comparison across cities ─────────────────────────
 
 export async function fetchPollutantComparison() {
