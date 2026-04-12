@@ -13,6 +13,7 @@ import type {
   AQIHistoryPoint,
   FunFact,
   StationWithAQI,
+  StateAQI,
 } from "@/types/database";
 
 /*
@@ -27,71 +28,24 @@ export async function fetchCitiesWithLatestAQI(): Promise<CityWithAQI[]> {
   if (!supabase) return getSampleCitiesWithAQI();
 
   try {
-    const { data: cities, error } = await supabase
-      .from("city")
-      .select(`
-        *,
-        monitoring_station (
-          *,
-          aqi_record (
-            aqi_id,
-            record_date,
-            aqi_value,
-            aqi_category,
-            station_id
-          )
-        )
-      `)
-      .order("city_name");
+    const { data, error } = await supabase
+      .from("vw_city_aqi_summary")
+      .select("*")
+      .order("avg_aqi", { ascending: false });
 
-    if (error || !cities) return getSampleCitiesWithAQI();
+    if (error || !data) return getSampleCitiesWithAQI();
 
-    return cities.map((city: Record<string, unknown>) => {
-      const stations = (city.monitoring_station as Record<string, unknown>[]) || [];
-      const stationsWithAQI: StationWithAQI[] = stations.map((s: Record<string, unknown>) => {
-        const records = ((s.aqi_record as Record<string, unknown>[]) || []).sort(
-          (a: Record<string, unknown>, b: Record<string, unknown>) =>
-            new Date(b.record_date as string).getTime() - new Date(a.record_date as string).getTime()
-        );
-        const latest = records[0];
-        return {
-          station_id: s.station_id as string,
-          station_name: s.station_name as string,
-          latitude: s.latitude as number,
-          longitude: s.longitude as number,
-          city_id: s.city_id as string,
-          latest_aqi: latest ? (latest.aqi_value as number) : null,
-          latest_category: latest ? (latest.aqi_category as string) : null,
-          latest_record_date: latest ? (latest.record_date as string) : null,
-        };
-      });
-
-      const aqiValues = stationsWithAQI
-        .map((s) => s.latest_aqi)
-        .filter((v): v is number => v !== null);
-      const avg =
-        aqiValues.length > 0
-          ? Math.round(aqiValues.reduce((a, b) => a + b, 0) / aqiValues.length)
-          : 0;
-      const max = aqiValues.length > 0 ? Math.max(...aqiValues) : 0;
-      const cat =
-        avg <= 50 ? "Good" :
-        avg <= 100 ? "Satisfactory" :
-        avg <= 200 ? "Moderate" :
-        avg <= 300 ? "Poor" :
-        avg <= 400 ? "Very Poor" : "Severe";
-
-      return {
-        city_id: city.city_id as string,
-        city_name: city.city_name as string,
-        state: city.state as string,
-        country: city.country as string,
-        stations: stationsWithAQI,
-        avg_aqi: avg,
-        max_aqi: max,
-        dominant_category: cat,
-      };
-    }).sort((a: CityWithAQI, b: CityWithAQI) => b.avg_aqi - a.avg_aqi);
+    return (data as Record<string, unknown>[]).map((row) => ({
+      city_id: row.city_id as number,
+      city_name: row.city_name as string,
+      state: row.state as string,
+      country: row.country as string,
+      stations: (row.stations as StationWithAQI[]) ?? [],
+      station_count: row.active_stations as number,
+      avg_aqi: row.avg_aqi as number,
+      max_aqi: row.max_aqi as number,
+      dominant_category: row.dominant_category as string,
+    }));
   } catch {
     return getSampleCitiesWithAQI();
   }
@@ -99,9 +53,9 @@ export async function fetchCitiesWithLatestAQI(): Promise<CityWithAQI[]> {
 
 // ─── Station detail ─────────────────────────────────────────────
 
-export async function fetchStationDetail(stationId: string): Promise<StationDetail | null> {
+export async function fetchStationDetail(stationId: number): Promise<StationDetail | null> {
   const supabase = createServerClient();
-  if (!supabase) return getSampleStationDetail(stationId);
+  if (!supabase) return getSampleStationDetail(String(stationId));
 
   try {
     const { data: station, error } = await supabase
@@ -120,7 +74,7 @@ export async function fetchStationDetail(stationId: string): Promise<StationDeta
       .eq("station_id", stationId)
       .single();
 
-    if (error || !station) return getSampleStationDetail(stationId);
+    if (error || !station) return getSampleStationDetail(String(stationId));
 
     const records = ((station.aqi_record as Record<string, unknown>[]) || []).sort(
       (a: Record<string, unknown>, b: Record<string, unknown>) =>
@@ -153,39 +107,39 @@ export async function fetchStationDetail(stationId: string): Promise<StationDeta
     const city = station.city as Record<string, unknown>;
 
     return {
-      station_id: station.station_id as string,
+      station_id: station.station_id as number,
       station_name: station.station_name as string,
       latitude: station.latitude as number,
       longitude: station.longitude as number,
-      city_id: station.city_id as string,
+      city_id: station.city_id as number,
       city: {
-        city_id: city.city_id as string,
+        city_id: city.city_id as number,
         city_name: city.city_name as string,
         state: city.state as string,
         country: city.country as string,
       },
       latest_record: latestRecord
         ? {
-            aqi_id: latestRecord.aqi_id as string,
+            aqi_id: latestRecord.aqi_id as number,
             record_date: latestRecord.record_date as string,
             aqi_value: latestRecord.aqi_value as number,
             aqi_category: latestRecord.aqi_category as string,
-            station_id: stationId,
+            station_id: station.station_id as number,
           }
         : null,
       pollutant_readings: pollutantReadings,
       advisory,
     };
   } catch {
-    return getSampleStationDetail(stationId);
+    return getSampleStationDetail(String(stationId));
   }
 }
 
 // ─── Station AQI history ────────────────────────────────────────
 
-export async function fetchStationHistory(stationId: string): Promise<AQIHistoryPoint[]> {
+export async function fetchStationHistory(stationId: number): Promise<AQIHistoryPoint[]> {
   const supabase = createServerClient();
-  if (!supabase) return getSampleStationHistory(stationId);
+  if (!supabase) return getSampleStationHistory(String(stationId));
 
   try {
     const { data, error } = await supabase
@@ -195,7 +149,7 @@ export async function fetchStationHistory(stationId: string): Promise<AQIHistory
       .order("record_date", { ascending: true })
       .limit(90);
 
-    if (error || !data) return getSampleStationHistory(stationId);
+    if (error || !data) return getSampleStationHistory(String(stationId));
 
     return data.map((r: Record<string, unknown>) => ({
       date: r.record_date as string,
@@ -203,7 +157,7 @@ export async function fetchStationHistory(stationId: string): Promise<AQIHistory
       category: r.aqi_category as string,
     }));
   } catch {
-    return getSampleStationHistory(stationId);
+    return getSampleStationHistory(String(stationId));
   }
 }
 
@@ -215,7 +169,7 @@ export async function fetchFunFact(aqiValue: number): Promise<FunFact | null> {
 
   try {
     const { data, error } = await supabase
-      .from("fun_fact")
+      .from("fun_facts")
       .select("*")
       .lte("min_aqi", aqiValue)
       .gte("max_aqi", aqiValue);
@@ -234,52 +188,94 @@ export async function fetchTopStations(limit: number = 5): Promise<StationWithAQ
   if (!supabase) return getSampleTopStations(limit);
 
   try {
-    // Use a manual approach: fetch latest record per station
     const { data, error } = await supabase
-      .from("aqi_record")
-      .select(`
-        aqi_value,
-        aqi_category,
-        record_date,
-        station_id,
-        monitoring_station (*)
-      `)
-      .order("record_date", { ascending: false })
-      .limit(100);
+      .from("vw_danger_zones")
+      .select("station_id, station_name, city_name, latitude, longitude, city_id, aqi_value, aqi_category, record_date, precaution_message")
+      .order("aqi_value", { ascending: false })
+      .limit(limit);
 
     if (error || !data) return getSampleTopStations(limit);
 
-    // Group by station, take latest
-    const byStation = new Map<string, StationWithAQI>();
-    for (const record of data as Record<string, unknown>[]) {
-      const sid = record.station_id as string;
-      if (!byStation.has(sid)) {
-        const s = record.monitoring_station as Record<string, unknown>;
-        byStation.set(sid, {
-          station_id: sid,
-          station_name: s.station_name as string,
-          latitude: s.latitude as number,
-          longitude: s.longitude as number,
-          city_id: s.city_id as string,
-          latest_aqi: record.aqi_value as number,
-          latest_category: record.aqi_category as string,
-          latest_record_date: record.record_date as string,
-        });
-      }
-    }
-
-    return Array.from(byStation.values())
-      .sort((a, b) => (b.latest_aqi ?? 0) - (a.latest_aqi ?? 0))
-      .slice(0, limit);
+    return (data as Record<string, unknown>[]).map((row) => ({
+      station_id: row.station_id as number,
+      station_name: row.station_name as string,
+      latitude: row.latitude as number,
+      longitude: row.longitude as number,
+      city_id: row.city_id as number,
+      latest_aqi: row.aqi_value as number,
+      latest_category: row.aqi_category as string,
+      latest_record_date: row.record_date as string,
+      city_name: row.city_name as string,
+      precaution_message: row.precaution_message as string,
+    }));
   } catch {
     return getSampleTopStations(limit);
   }
 }
 
+// ─── India Map Aggregates ──────────────────────────────────────
+
+export async function fetchIndiaMapData(): Promise<StateAQI[]> {
+  const cities = await fetchCitiesWithLatestAQI();
+
+  const stateMap = new Map<string, { aqiSum: number; stationCount: number; maxAqi: number }>();
+
+  cities.forEach(city => {
+    const state = city.state;
+    if (!stateMap.has(state)) {
+      stateMap.set(state, { aqiSum: 0, stationCount: 0, maxAqi: 0 });
+    }
+    const current = stateMap.get(state)!;
+
+    city.stations.forEach(s => {
+      if (s.latest_aqi !== null) {
+        current.aqiSum += s.latest_aqi;
+        current.stationCount += 1;
+        if (s.latest_aqi > current.maxAqi) current.maxAqi = s.latest_aqi;
+      }
+    });
+  });
+
+  return Array.from(stateMap.entries()).map(([stateName, data]) => {
+    const avg = data.stationCount > 0 ? Math.round(data.aqiSum / data.stationCount) : 0;
+    const cat =
+      avg <= 50 ? "Good" :
+      avg <= 100 ? "Satisfactory" :
+      avg <= 200 ? "Moderate" :
+      avg <= 300 ? "Poor" :
+      avg <= 400 ? "Very Poor" : "Severe";
+
+    return {
+      state_name: stateName,
+      avg_aqi: avg,
+      max_aqi: data.maxAqi,
+      dominant_category: cat,
+      station_count: data.stationCount,
+    };
+  });
+}
+
 // ─── Pollutant comparison across cities ─────────────────────────
 
 export async function fetchPollutantComparison() {
-  // Complex aggregation — use sample data for now
-  // In production this would be a Supabase RPC or view
-  return getSamplePollutantComparison();
+  const supabase = createServerClient();
+  if (!supabase) return getSamplePollutantComparison();
+
+  try {
+    const { data, error } = await supabase
+      .from("vw_pollutant_city_avg")
+      .select("city_name, pollutant_name, unit, avg_value, peak_value");
+
+    if (error || !data || data.length === 0) return getSamplePollutantComparison();
+
+    return data as {
+      city_name: string;
+      pollutant_name: string;
+      unit: string;
+      avg_value: number;
+      peak_value: number;
+    }[];
+  } catch {
+    return getSamplePollutantComparison();
+  }
 }

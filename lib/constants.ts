@@ -70,12 +70,12 @@ export const AQI_BREAKPOINTS: {
 // ─── Pollutant metadata ─────────────────────────────────────────
 
 export const POLLUTANT_COLORS: Record<string, string> = {
-  "PM2.5": "#a78bfa",
-  PM10: "#60a5fa",
-  NO2: "#f472b6",
-  SO2: "#facc15",
-  CO: "#fb923c",
-  O3: "#34d399",
+  "PM2.5": "hsl(250, 60%, 75%)", // Muted Lavender
+  PM10: "hsl(210, 50%, 70%)",   // Muted Blue
+  NO2: "hsl(330, 50%, 70%)",    // Muted Rose
+  SO2: "hsl(45, 70%, 65%)",     // Muted Amber
+  CO: "hsl(20, 70%, 65%)",      // Muted Coral
+  O3: "hsl(160, 50%, 65%)",     // Muted Sage
 };
 
 export const POLLUTANT_LABELS: Record<string, string> = {

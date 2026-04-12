@@ -49,7 +49,7 @@ export default function CityGrid({ cities }: CityGridProps) {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-16 gap-x-8">
         {filteredCities.map((city, idx) => (
           <div
-            key={city.city_id}
+            key={city.city_name}
             className={`
               transition-all duration-1000 ease-in-out
               ${idx % 3 === 1 ? "lg:translate-y-12" : ""}

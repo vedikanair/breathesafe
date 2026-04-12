@@ -30,7 +30,7 @@ export default function CityCarousel({ cities }: CityCarouselProps) {
           const color = getAQIColor(city.avg_aqi);
           return (
             <Link
-              key={city.city_id}
+              key={city.city_name}
               href={`/explore?city=${city.city_id}`}
               className={`
                 flex-shrink-0 w-[260px] glass-sm p-5

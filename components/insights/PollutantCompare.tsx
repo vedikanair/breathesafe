@@ -87,9 +87,11 @@ export default function PollutantCompare({ data }: PollutantCompareProps) {
                 key={p}
                 dataKey={p}
                 fill={POLLUTANT_COLORS[p]}
-                radius={[3, 3, 0, 0]}
-                barSize={8}
-                opacity={0.8}
+                radius={[4, 4, 0, 0]}
+                barSize={10}
+                opacity={0.7}
+                animationDuration={1500}
+                animationEasing="ease-out"
               />
             ))}
           </BarChart>

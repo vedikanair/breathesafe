@@ -8,7 +8,8 @@ import FunFactBanner from "@/components/insights/FunFactBanner";
 import PollutantCompare from "@/components/insights/PollutantCompare";
 import { getAQIColor } from "@/lib/utils";
 import Link from "next/link";
-import type { CityWithAQI, StationWithAQI, FunFact } from "@/types/database";
+import InteractiveMap from "@/components/map/InteractiveMap";
+import type { CityWithAQI, StationWithAQI, FunFact, StateAQI } from "@/types/database";
 
 interface LandingClientProps {
   cities: CityWithAQI[];
@@ -22,6 +23,7 @@ interface LandingClientProps {
     CO: number;
     O3: number;
   }[];
+  mapData: StateAQI[];
   funFact: FunFact | null;
 }
 
@@ -45,6 +47,7 @@ export default function LandingClient({
   cities,
   topStations,
   pollutantData,
+  mapData,
   funFact,
 }: LandingClientProps) {
   return (
@@ -60,6 +63,14 @@ export default function LandingClient({
       <motion.div variants={item}>
         <HeroSection cities={cities} />
       </motion.div>
+
+      {/* ── Geographic Exploration Layer ──────────────────────── */}
+      <motion.section variants={item} className="relative z-20">
+        <InteractiveMap 
+          stateAggregates={mapData} 
+          cities={cities}
+        />
+      </motion.section>
 
       {/* ── City Carousel (Shifted) ────────────────────────── */}
       <motion.section variants={item} className="relative z-10 -mt-20">

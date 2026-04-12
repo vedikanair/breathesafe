@@ -1,4 +1,9 @@
-import { fetchCitiesWithLatestAQI, fetchTopStations, fetchPollutantComparison } from "@/lib/supabase/queries";
+import { 
+  fetchCitiesWithLatestAQI, 
+  fetchTopStations, 
+  fetchPollutantComparison,
+  fetchIndiaMapData 
+} from "@/lib/supabase/queries";
 import { getSampleFunFact } from "@/lib/sample-data";
 import LandingClient from "./LandingClient";
 
@@ -6,10 +11,11 @@ export const dynamic = "force-dynamic";
 export const revalidate = 60;
 
 export default async function HomePage() {
-  const [cities, topStations, pollutantData] = await Promise.all([
+  const [cities, topStations, pollutantData, mapData] = await Promise.all([
     fetchCitiesWithLatestAQI(),
     fetchTopStations(5),
     fetchPollutantComparison(),
+    fetchIndiaMapData(),
   ]);
 
   const nationalAvg = cities.length > 0
@@ -23,6 +29,7 @@ export default async function HomePage() {
       cities={cities}
       topStations={topStations}
       pollutantData={pollutantData}
+      mapData={mapData}
       funFact={funFact}
     />
   );

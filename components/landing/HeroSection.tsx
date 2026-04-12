@@ -52,31 +52,6 @@ export default function HeroSection({ cities }: HeroSectionProps) {
         }}
       />
 
-      {/* India map silhouette - more subtle and offset */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20 translate-x-[10%] translate-y-[-5%] scale-110">
-        <div className="relative w-full max-w-2xl h-full max-h-[800px]">
-          {cities.map((city) => {
-            const coords = CITY_COORDINATES[city.city_name];
-            if (!coords) return null;
-            const color = getAQIColor(city.avg_aqi);
-            return (
-              <div
-                key={city.city_id}
-                className="absolute"
-                style={{
-                  left: `${coords.x}%`,
-                  top: `${coords.y}%`,
-                }}
-              >
-                <div
-                  className="w-1 h-1 rounded-full animate-dot-pulse"
-                  style={{ backgroundColor: color }}
-                />
-              </div>
-            );
-          })}
-        </div>
-      </div>
 
       <div className="relative z-10 w-full max-w-5xl">
         <div
@@ -86,13 +61,6 @@ export default function HeroSection({ cities }: HeroSectionProps) {
           `}
           style={{ animationFillMode: "forwards" }}
         >
-          {/* Subtle eyebrow */}
-          <div className="flex items-center gap-3 mb-8">
-            <div className="h-px w-8 bg-white/20" />
-            <span className="text-[10px] uppercase tracking-[0.2em] text-white/40 font-medium">
-              Environmental Intelligence
-            </span>
-          </div>
 
           <h1 className="text-[clamp(3rem,10vw,6rem)] font-bold tracking-tighter leading-[0.9] mb-12 max-w-4xl">
             <span className="block text-white opacity-95">BreatheSafe.</span>
