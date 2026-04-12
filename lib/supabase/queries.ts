@@ -277,16 +277,22 @@ export async function fetchIndiaMapData(): Promise<StateAQI[]> {
 }
 // ─── Pollutant comparison across cities ─────────────────────────
 
-export async function fetchPollutantComparison() {
+export async function fetchPollutantComparison(): Promise<{
+  city_name: string;
+  pollutant_name: string;
+  unit: string;
+  avg_value: number;
+  peak_value: number;
+}[]> {
   const supabase = createServerClient();
-  if (!supabase) return getSamplePollutantComparison();
+  if (!supabase) return getSamplePollutantComparison() as any;
 
   try {
     const { data, error } = await supabase
       .from("vw_pollutant_city_avg")
       .select("city_name, pollutant_name, unit, avg_value, peak_value");
 
-    if (error || !data || data.length === 0) return getSamplePollutantComparison();
+    if (error || !data || data.length === 0) return getSamplePollutantComparison() as any;
 
     return data as {
       city_name: string;
@@ -296,6 +302,6 @@ export async function fetchPollutantComparison() {
       peak_value: number;
     }[];
   } catch {
-    return getSamplePollutantComparison();
+    return getSamplePollutantComparison() as any;
   }
 }
