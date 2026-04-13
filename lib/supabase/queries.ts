@@ -33,9 +33,6 @@ export async function fetchCitiesWithLatestAQI(): Promise<CityWithAQI[]> {
       .select("*")
       .order("avg_aqi", { ascending: false });
 
-    console.log("fetchCitiesWithLatestAQI — raw data sample:", JSON.stringify(data?.slice(0, 2), null, 2));
-    console.log("fetchCitiesWithLatestAQI — error:", error);
-
     if (error || !data) return getSampleCitiesWithAQI();
 
     return (data as Record<string, unknown>[]).map((row) => ({
@@ -46,11 +43,10 @@ export async function fetchCitiesWithLatestAQI(): Promise<CityWithAQI[]> {
       stations: (row.stations as StationWithAQI[]) ?? [],
       station_count: row.active_stations as number,
       avg_aqi: row.avg_aqi as number,
-      max_aqi: row.max_aqi as number,
+      max_aqi: row.peak_aqi as number, // view uses peak_aqi
       dominant_category: row.dominant_category as string,
     }));
-  } catch (e) {
-    console.log("fetchCitiesWithLatestAQI — caught error:", e);
+  } catch {
     return getSampleCitiesWithAQI();
   }
 }
